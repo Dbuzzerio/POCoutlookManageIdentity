@@ -1,0 +1,468 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "contentVersion": "1.0.0.0",
+        "actions": {
+            "Get_Client_Id": {
+                "type": "ServiceProvider",
+                "description": "Get Secret Id",
+                "inputs": {
+                    "parameters": {
+                        "secretName": "graph-client-id"
+                    },
+                    "serviceProviderConfiguration": {
+                        "connectionName": "keyVault",
+                        "operationId": "getSecret",
+                        "serviceProviderId": "/serviceProviders/keyVault"
+                    }
+                },
+                "runAfter": {},
+                "runtimeConfiguration": {
+                    "secureData": {
+                        "properties": [
+                            "inputs",
+                            "outputs"
+                        ]
+                    }
+                }
+            },
+            "Get_Client_Secret": {
+                "type": "ServiceProvider",
+                "inputs": {
+                    "parameters": {
+                        "secretName": "graph-client-secret"
+                    },
+                    "serviceProviderConfiguration": {
+                        "connectionName": "keyVault",
+                        "operationId": "getSecret",
+                        "serviceProviderId": "/serviceProviders/keyVault"
+                    }
+                },
+                "runAfter": {
+                    "Get_Client_Id": [
+                        "SUCCEEDED"
+                    ]
+                },
+                "runtimeConfiguration": {
+                    "secureData": {
+                        "properties": [
+                            "inputs",
+                            "outputs"
+                        ]
+                    }
+                }
+            },
+            "Get_Refresh_Token": {
+                "type": "ServiceProvider",
+                "inputs": {
+                    "parameters": {
+                        "secretName": "graph-refresh-token"
+                    },
+                    "serviceProviderConfiguration": {
+                        "connectionName": "keyVault",
+                        "operationId": "getSecret",
+                        "serviceProviderId": "/serviceProviders/keyVault"
+                    }
+                },
+                "runAfter": {
+                    "Get_Client_Secret": [
+                        "SUCCEEDED"
+                    ]
+                },
+                "runtimeConfiguration": {
+                    "secureData": {
+                        "properties": [
+                            "inputs",
+                            "outputs"
+                        ]
+                    }
+                }
+            },
+            "Refresh_Access_token": {
+                "type": "Http",
+                "inputs": {
+                    "uri": "https://login.microsoftonline.com/consumers/oauth2/v2.0/token",
+                    "method": "POST",
+                    "headers": {
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    },
+                    "body": "@{concat('client_id=', body('Get_Client_ID')?['value'], '&scope=Mail.Read%20Mail.ReadWrite%20offline_access%20User.Read', '&refresh_token=', body('Get_Refresh_Token')?['value'], '&grant_type=refresh_token', '&client_secret=', body('Get_Client_Secret')?['value'])}\n\n\n"
+                },
+                "runAfter": {
+                    "Get_Refresh_Token": [
+                        "SUCCEEDED"
+                    ]
+                },
+                "runtimeConfiguration": {
+                    "contentTransfer": {
+                        "transferMode": "Chunked"
+                    }
+                }
+            },
+            "Get_Emails": {
+                "type": "Http",
+                "inputs": {
+                    "uri": "https://graph.microsoft.com/v1.0/me/mailFolders/Inbox/messages",
+                    "method": "GET",
+                    "headers": {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer @{body('Refresh_Access_Token')?['access_token']}"
+                    },
+                    "queries": {
+                        "$filter": "isRead eq false",
+                        "$select": "id,subject,from,toRecipients,receivedDateTime,body,hasAttachments",
+                        "$top": "50"
+                    }
+                },
+                "runAfter": {
+                    "Refresh_Access_token": [
+                        "SUCCEEDED"
+                    ]
+                },
+                "runtimeConfiguration": {
+                    "contentTransfer": {
+                        "transferMode": "Chunked"
+                    }
+                }
+            },
+            "For_each": {
+                "type": "Foreach",
+                "foreach": "@body('Get_Emails').value",
+                "actions": {
+                    "Parse_Emails": {
+                        "type": "ParseJson",
+                        "inputs": {
+                            "content": "@body('Get_Emails')",
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "value": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string"
+                                                },
+                                                "subject": {
+                                                    "type": "string"
+                                                },
+                                                "receivedDateTime": {
+                                                    "type": "string"
+                                                },
+                                                "hasAttachments": {
+                                                    "type": "boolean"
+                                                },
+                                                "from": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "emailAddress": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "name": {
+                                                                    "type": "string"
+                                                                },
+                                                                "address": {
+                                                                    "type": "string"
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "body": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "contentType": {
+                                                            "type": "string"
+                                                        },
+                                                        "content": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "For_each_email": {
+                        "type": "foreach",
+                        "foreach": "@body('Parse_Emails')?['value']",
+                        "actions": {
+                            "Create_blob_(V2)": {
+                                "type": "ApiConnection",
+                                "inputs": {
+                                    "host": {
+                                        "connection": {
+                                            "referenceName": "azureblob"
+                                        }
+                                    },
+                                    "method": "post",
+                                    "body": "@items('For_each')",
+                                    "headers": {
+                                        "ReadFileMetadataFromServer": true
+                                    },
+                                    "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('https://poclogicapp9c74.blob.core.windows.net'))}/files",
+                                    "queries": {
+                                        "folderPath": "/pocmail",
+                                        "name": "@concat(first(split(items('For_Each_Email')?['from']?['emailAddress']?['address'], '@')), '_', formatDateTime(items('For_Each_Email')?['receivedDateTime'],'yyyy-MM-dd_HH-mm-ss'), '.json')",
+                                        "queryParametersSingleEncoded": true
+                                    }
+                                },
+                                "runAfter": {
+                                    "Get_Email_as_EML": [
+                                        "SUCCEEDED"
+                                    ]
+                                },
+                                "runtimeConfiguration": {
+                                    "contentTransfer": {
+                                        "transferMode": "Chunked"
+                                    }
+                                }
+                            },
+                            "Set_Letta": {
+                                "type": "Http",
+                                "inputs": {
+                                    "uri": "https://graph.microsoft.com/v1.0/me/messages/@{items('For_each')?['id']}",
+                                    "method": "PATCH",
+                                    "headers": {
+                                        "Authorization": "Bearer @{body('Refresh_Access_Token')?['access_token']}",
+                                        "Content-Type": "application/json"
+                                    },
+                                    "body": {
+                                        "isRead": true
+                                    }
+                                },
+                                "runAfter": {
+                                    "Create_blob_(V2)": [
+                                        "SUCCEEDED"
+                                    ]
+                                },
+                                "runtimeConfiguration": {
+                                    "contentTransfer": {
+                                        "transferMode": "Chunked"
+                                    }
+                                }
+                            },
+                            "Get_Email_as_EML": {
+                                "type": "Http",
+                                "inputs": {
+                                    "uri": "https://graph.microsoft.com/v1.0/me/messages/@{items('For_Each_Email')?['id']}/$value\n",
+                                    "method": "GET",
+                                    "headers": {
+                                        "Authorization": "Bearer @{body('Refresh_Access_Token')?['access_token']}"
+                                    }
+                                },
+                                "runtimeConfiguration": {
+                                    "contentTransfer": {
+                                        "transferMode": "Chunked"
+                                    }
+                                }
+                            },
+                            "Create_blob_(V2)_eml": {
+                                "type": "ApiConnection",
+                                "inputs": {
+                                    "host": {
+                                        "connection": {
+                                            "referenceName": "azureblob"
+                                        }
+                                    },
+                                    "method": "post",
+                                    "body": "@body('Get_Email_as_EML')",
+                                    "headers": {
+                                        "ReadFileMetadataFromServer": true
+                                    },
+                                    "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('https://poclogicapp9c74.blob.core.windows.net'))}/files",
+                                    "queries": {
+                                        "folderPath": "/pocmail",
+                                        "name": "@concat(first(split(items('For_Each_Email')?['from']?['emailAddress']?['address'], '@')), '_', formatDateTime(items('For_Each_Email')?['receivedDateTime'],'yyyy-MM-dd_HH-mm-ss'), '.eml')",
+                                        "queryParametersSingleEncoded": true
+                                    }
+                                },
+                                "runAfter": {
+                                    "Get_Email_as_EML": [
+                                        "SUCCEEDED"
+                                    ]
+                                },
+                                "runtimeConfiguration": {
+                                    "contentTransfer": {
+                                        "transferMode": "Chunked"
+                                    }
+                                }
+                            },
+                            "Condition_attachments": {
+                                "type": "If",
+                                "expression": {
+                                    "and": [
+                                        {
+                                            "equals": [
+                                                "@items('For_Each_Email')?['hasAttachments']",
+                                                "@true"
+                                            ]
+                                        }
+                                    ]
+                                },
+                                "actions": {
+                                    "HTTP_GetAttachment": {
+                                        "type": "Http",
+                                        "inputs": {
+                                            "uri": "https://graph.microsoft.com/v1.0/me/messages/@{items('For_Each_Email')?['id']}/attachments",
+                                            "method": "GET",
+                                            "headers": {
+                                                "Authorization": "Bearer @{body('Refresh_Access_Token')?['access_token']}",
+                                                "Content-type": "application/json"
+                                            }
+                                        },
+                                        "runtimeConfiguration": {
+                                            "contentTransfer": {
+                                                "transferMode": "Chunked"
+                                            }
+                                        }
+                                    },
+                                    "Parse_JSON": {
+                                        "type": "ParseJson",
+                                        "inputs": {
+                                            "content": "@body('HTTP_GetAttachment')",
+                                            "schema": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "value": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "id": {
+                                                                    "type": "string"
+                                                                },
+                                                                "name": {
+                                                                    "type": "string"
+                                                                },
+                                                                "contentType": {
+                                                                    "type": "string"
+                                                                },
+                                                                "size": {
+                                                                    "type": "integer"
+                                                                },
+                                                                "isInline": {
+                                                                    "type": "boolean"
+                                                                },
+                                                                "contentBytes": {
+                                                                    "type": "string"
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "runAfter": {
+                                            "HTTP_GetAttachment": [
+                                                "SUCCEEDED"
+                                            ]
+                                        }
+                                    },
+                                    "For_each_attachment": {
+                                        "type": "Foreach",
+                                        "foreach": "@body('HTTP_GetAttachment')?['value']",
+                                        "actions": {
+                                            "Condition_AttachmentIsNotInline": {
+                                                "type": "If",
+                                                "expression": {
+                                                    "and": [
+                                                        {
+                                                            "equals": [
+                                                                "@items('For_each_attachment')?['isInline']",
+                                                                "@false"
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                "actions": {
+                                                    "Create_blob_(V2)_Attachment": {
+                                                        "type": "ApiConnection",
+                                                        "inputs": {
+                                                            "host": {
+                                                                "connection": {
+                                                                    "referenceName": "azureblob"
+                                                                }
+                                                            },
+                                                            "method": "post",
+                                                            "body": "@base64ToBinary(items('For_Each_Attachment')?['contentBytes'])",
+                                                            "headers": {
+                                                                "ReadFileMetadataFromServer": true
+                                                            },
+                                                            "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('poclogicapp9c74'))}/files",
+                                                            "queries": {
+                                                                "folderPath": "/pocmail",
+                                                                "name": "@concat(first(split(items('For_Each_Email')?['from']?['emailAddress']?['address'], '@')), '_', formatDateTime(items('For_Each_Email')?['receivedDateTime'],'yyyy-MM-dd_HH-mm-ss'), '_', items('For_Each_Attachment')?['name'])",
+                                                                "queryParametersSingleEncoded": true
+                                                            }
+                                                        },
+                                                        "runtimeConfiguration": {
+                                                            "contentTransfer": {
+                                                                "transferMode": "Chunked"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "else": {
+                                                    "actions": {}
+                                                }
+                                            }
+                                        },
+                                        "runAfter": {
+                                            "Parse_JSON": [
+                                                "SUCCEEDED"
+                                            ]
+                                        }
+                                    }
+                                },
+                                "else": {
+                                    "actions": {}
+                                }
+                            }
+                        },
+                        "runAfter": {
+                            "Parse_Emails": [
+                                "SUCCEEDED"
+                            ]
+                        }
+                    }
+                },
+                "runAfter": {
+                    "Get_Emails": [
+                        "SUCCEEDED"
+                    ]
+                },
+                "runtimeConfiguration": {
+                    "concurrency": {
+                        "repetitions": 1
+                    }
+                }
+            }
+        },
+        "outputs": {},
+        "triggers": {
+            "Recurrence": {
+                "type": "Recurrence",
+                "description": "Recurrence un minuto",
+                "recurrence": {
+                    "interval": 3,
+                    "frequency": "Minute",
+                    "timeZone": "W. Europe Standard Time",
+                    "startTime": "2026-06-03T08:00:00Z"
+                },
+                "conditions": [],
+                "runtimeConfiguration": {
+                    "concurrency": {
+                        "runs": 1,
+                        "maximumWaitingRuns": 10
+                    }
+                }
+            }
+        }
+    },
+    "kind": "stateful"
+}

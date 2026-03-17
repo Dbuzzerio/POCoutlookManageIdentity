@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="POCoutlookManageIdentity\POCoutlookManageIdentity.csproj" />
+  <Project Path="POCoutlookManageIdentity.UnitTests\POCoutlookManageIdentity.UnitTests.csproj" />
+</Solution>

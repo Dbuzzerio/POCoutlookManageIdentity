@@ -1,0 +1,58 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<AzureFunctionsVersion>v4</AzureFunctionsVersion>
+		<OutputType>Exe</OutputType>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<Configurations>Debug;Release;DebugWithDocs</Configurations>
+		<!--<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>-->
+	</PropertyGroup>
+	<ItemGroup>
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+		<PackageReference Include="FluentResults" Version="4.0.0" />
+		<PackageReference Include="Fluid.Core" Version="2.31.0" />
+		<PackageReference Include="Microsoft.ApplicationInsights.DependencyCollector" Version="2.23.0" />
+		<PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="2.23.0" />
+		<PackageReference Include="Microsoft.Azure.AppConfiguration.Functions.Worker" Version="8.4.0" />
+		<PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.51.0" />
+		<PackageReference Include="Microsoft.Azure.Functions.Worker.ApplicationInsights" Version="2.50.0" />
+		<PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.3.0" />
+		<PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="2.1.0" />
+		<PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.ServiceBus" Version="5.24.0" />
+		<PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Blobs" Version="6.8.0" />
+		<PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Timer" Version="4.3.1" />
+		<PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.7" />
+		<PackageReference Include="Microsoft.Extensions.Azure" Version="1.13.0" />
+		<PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.OpenApi" Version="1.6.0" />
+		<PackageReference Include="FluentValidation" Version="12.1.0" />
+		<PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.0" />
+		<PackageReference Include="Microsoft.FeatureManagement" Version="4.3.0" />
+		<PackageReference Include="PLN.Azure.Function.Common" Version="1.0.55" />
+		<PackageReference Include="PLN.Code.Analyzer" Version="1.0.4" PrivateAssets="all" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+		<PackageReference Include="PLN.FluentResults.Extensions" Version="1.0.3" />
+
+		<PackageReference Include="PLN.SourceGenerators" Version="1.0.17" />
+		<PackageReference Include="System.Diagnostics.DiagnosticSource" Version="10.0.0" />
+		<PackageReference Include="System.Text.Json" Version="10.0.0" />
+		<PackageReference Include="ZiggyCreatures.FusionCache" Version="2.4.0" />
+	</ItemGroup>
+	<ItemGroup>
+		<Using Include="System.Threading.ExecutionContext" Alias="ExecutionContext" />
+	</ItemGroup>
+	<ItemGroup>
+		<None Update="appsettings.json">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="host.json">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="local.settings.json">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+			<CopyToPublishDirectory>Never</CopyToPublishDirectory>
+		</None>
+	</ItemGroup>
+	<ItemGroup>
+		<Using Include="System.Threading.ExecutionContext" Alias="ExecutionContext" />
+	</ItemGroup>
+</Project>
