@@ -364,3 +364,7 @@ FodyWeavers.xsd
 
 # Ignore local settings with secrets
 local.settings.json
+
+# Ignore Azurite emulator data
+POCoutlookManageIdentity/azurite/
+azurite/
