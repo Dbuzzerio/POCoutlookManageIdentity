@@ -100,6 +100,8 @@ namespace POCoutlookManageIdentity.OutlookManageTrigger.Services
             }
 
             var token = tokenResult.Value;
+            _logger.LogInformation("Token richiamato: {Json}", token);
+
             using var req = new HttpRequestMessage(HttpMethod.Get, "https://graph.microsoft.com/v1.0/me/mailFolders/Inbox/messages?$filter=isRead%20eq%20false&$select=id,subject,from,toRecipients,receivedDateTime,body,hasAttachments&$top=50");
             req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
@@ -111,6 +113,8 @@ namespace POCoutlookManageIdentity.OutlookManageTrigger.Services
             }
 
             var json = await resp.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            _logger.LogInformation("Messaggi recuperati: {Json}", json);
+
             return Result.Ok(json);
         }
 

@@ -26,8 +26,9 @@ namespace POCoutlookManageIdentity.OutlookManageTrigger
             _outlookmanagetriggerService = outlookmanagetriggerService;
         }
 
+        // RunOnStartup = true solo per debug
         [Function(nameof(OutlookManageTrigger))]
-        public async Task Run([TimerTrigger("%OutlookManageTriggerCronExpression%", RunOnStartup = false)] TimerInfo timerInfo)
+        public async Task Run([TimerTrigger("%OutlookManageTriggerCronExpression%", RunOnStartup = true)] TimerInfo timerInfo)
         {
             await RunAsync(timerInfo);
         }
@@ -36,6 +37,7 @@ namespace POCoutlookManageIdentity.OutlookManageTrigger
         {
             _logger.LogInformation("OutlookManageTrigger started at {Now}", DateTimeOffset.UtcNow);
 
+            // test lettura di outlook e segnatura della mail come letta .
             try
             {
                 var messagesResult = await _outlookmanagetriggerService.GetUnreadMessagesAsync(cancellationToken).ConfigureAwait(false);
@@ -49,6 +51,7 @@ namespace POCoutlookManageIdentity.OutlookManageTrigger
                 using var doc = JsonDocument.Parse(json);
                 if (doc.RootElement.TryGetProperty("value", out var items) && items.ValueKind == JsonValueKind.Array)
                 {
+                    
                     foreach (var item in items.EnumerateArray())
                     {
                         if (cancellationToken.IsCancellationRequested) break;

@@ -69,3 +69,43 @@ sequenceDiagram
 ## Open Points
 
 <!-- Elencare i punti aperti e le decisioni da prendere -->
+
+
+## run on VS Code
+
+Prerequisiti: `node` (per `npx`) o `docker`, Azure Functions Core Tools, .NET SDK.
+
+1) Installare / avviare Azurite (emulatore Storage)
+
+- Con npm (globale):
+```powershell
+npm install -g azurite
+azurite --silent --location .\azurite --debug .\azurite\debug.log
+```
+- Con npx (senza installare):
+```powershell
+npx azurite --silent --location .\azurite --debug .\azurite\debug.log
+```
+- Con Docker:
+```powershell
+docker run -p 10000:10000 -p 10001:10001 -p 10002:10002 mcr.microsoft.com/azure-storage/azurite
+```
+
+2) Compilare il progetto (cartella con `host.json`):
+```powershell
+cd "C:\Users\d.buzzerio\POCoutlookManageIdentity\POCoutlookManageIdentity"
+dotnet build -c Debug
+```
+
+3) Avviare l'host Functions in modalità verbose (mostra log runtime):
+```powershell
+func start --verbose
+```
+
+4) Debug in VS Code
+- Impostare breakpoint in `OutlookManageTrigger.cs`.
+- In Run and Debug selezionare ".NET: Attach to Process" e scegliere il processo `dotnet` corrispondente al worker (controllare la command line che include la DLL della function).
+
+5) Note utili
+- Se `local.settings.json` contiene `"AzureWebJobsStorage": "UseDevelopmentStorage=true"` è necessario che Azurite sia in esecuzione.
+- Per test rapidi si può temporaneamente abilitare `RunOnStartup=true` nel `TimerTrigger` per forzare l'esecuzione all'avvio.
