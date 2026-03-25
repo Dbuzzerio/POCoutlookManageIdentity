@@ -24,9 +24,10 @@ public class OutlookManageTriggerServiceUnitTests
         _options.Value.Returns(new OutlookManageTriggerOptions());
 
         _sut = new OutlookManageTriggerService(
-            _blobStorageService, _configuration, _blobStorageServiceFactory,
+            _configuration, 
             _options,
-            _logger);
+            _logger,
+            _http);
     }
 
     [Fact]

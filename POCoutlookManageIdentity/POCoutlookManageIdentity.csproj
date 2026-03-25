@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFramework>net10.0</TargetFramework>
+		<TargetFramework>net8.0</TargetFramework>
 		<AzureFunctionsVersion>v4</AzureFunctionsVersion>
 		<OutputType>Exe</OutputType>
 		<ImplicitUsings>enable</ImplicitUsings>
@@ -29,6 +29,7 @@
 		<PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.0" />
 		<PackageReference Include="Microsoft.FeatureManagement" Version="4.3.0" />
 		<PackageReference Include="PLN.Azure.Function.Common" Version="1.0.55" />
+		<PackageReference Include="PLN.Clients.BlobStorage" Version="1.0.3" />
 		<PackageReference Include="PLN.Code.Analyzer" Version="1.0.4" PrivateAssets="all" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 		<PackageReference Include="PLN.FluentResults.Extensions" Version="1.0.3" />
 
